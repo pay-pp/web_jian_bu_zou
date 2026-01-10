@@ -8,7 +8,7 @@ export interface UnionInfo {
   unionCount: number //自定义数据；把所有用户unionin为工会id的人查出总数
   rewardAmount: number //和后台java的domain对应；每月奖励钱数；可修改
   groupList: GroupInfo[] //工会所属的小组列表，展示所有工会小组名称和对应小组人数（包括“未加入小组”信息，即groupId为空的微信用户）
-  gongGao: string //和后台java的domain对应；工会对应的公告信息，一般就一个；可修改，放最底下呈现一个编辑的公告栏样式
+  notice: string //和后台java的domain对应；工会对应的公告信息，就一个；可修改，放最底下呈现一个编辑的公告栏样式
 }
 
 export interface GroupInfo {
@@ -55,7 +55,7 @@ export function updateUnionInfo(data: {
   id: number
   unionCode: string
   rewardAmount: number
-  gongGao: string
+  notice: string
 }): Promise<{ success: boolean; message?: string }> {
   return request<{ success: boolean; message?: string }>({
     url: '/group/updateUnionInfo',
@@ -149,5 +149,20 @@ export function deleteUser(openid: string): Promise<{ success: boolean; message?
     url: '/user/deleteUser',
     method: 'post',
     data: { openid },
+  })
+}
+
+/**
+ * 恢复用户权限（启用用户）
+ * @param data 包含 openid 和 operatorOpenid
+ */
+export function restoreUser(data: {
+  openid: string
+  operatorOpenid: string
+}): Promise<{ success: boolean; message?: string }> {
+  return request<{ success: boolean; message?: string }>({
+    url: '/user/restoreUser',
+    method: 'post',
+    data,
   })
 }

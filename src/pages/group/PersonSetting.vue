@@ -84,6 +84,56 @@
         </template>
       </el-dialog>
 
+      <!-- 禁用用户 -->
+      <div class="disabled-group">
+        <el-collapse v-model="activeCollapse">
+          <el-collapse-item title="禁用用户" name="disabled">
+            <el-table
+              :data="disabledMembers"
+              :row-class-name="tableRowClassName"
+              style="width: 100%"
+            >
+              <el-table-column prop="name" label="姓名" />
+              <el-table-column prop="wxname" label="微信名" />
+              <el-table-column label="角色">
+                <template #default="{ row }">
+                  {{ row.role === 2 ? '组长' : '组员' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="状态">
+                <template #default="{ row }">
+                  {{ row.status === 0 ? '禁用' : '正常' }}
+                </template>
+              </el-table-column>
+              <el-table-column label="初次登录">
+                <template #default="{ row }">
+                  {{ formatDateTime(row.createTime) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="最近登录">
+                <template #default="{ row }">
+                  {{ formatDateTime(row.updateTime) }}
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="200">
+                <template #default="{ row }">
+                  <el-dropdown @command="handleDisabledCommand($event, row)">
+                    <el-button type="primary" size="small">
+                      操作<i class="el-icon-arrow-down el-icon--right"></i>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="restoreUser">恢复权限</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-collapse-item>
+        </el-collapse>
+      </div>
+
       <!-- 待加入小组人员（未加入小组） -->
       <div class="pending-group">
         <el-collapse v-model="activeCollapse">
@@ -149,6 +199,7 @@ import {
   removeMember,
   addMemberToGroup,
   deleteUser,
+  restoreUser,
   type UnionInfo,
   type GroupInfo,
   type GroupMember,
@@ -214,14 +265,29 @@ const regularGroups = computed<GroupInfo[]>(() => {
   )
 })
 
-// 待加入小组人员（groupId为null的组）
+// 待加入小组人员（groupId为null且groupName为"待加入小组人员"的组）
 const pendingGroup = computed<GroupInfo>(() => {
   if (!unionInfo.value?.groupList)
-    return { groupId: null, groupName: '未加入小组', members: [], memberCount: 0 }
+    return { groupId: null, groupName: '待加入小组人员', members: [], memberCount: 0 }
   const pending = unionInfo.value.groupList.find(
-    (g: GroupInfo) => g.groupId === null || g.groupId === undefined,
+    (g: GroupInfo) => (g.groupId === null || g.groupId === undefined) && g.groupName === '待加入小组人员',
   )
-  return pending || { groupId: null, groupName: '未加入小组', members: [], memberCount: 0 }
+  return pending || { groupId: null, groupName: '待加入小组人员', members: [], memberCount: 0 }
+})
+
+// 禁用用户组（groupId为null且groupName为"禁用用户"的组）
+const disabledGroup = computed<GroupInfo>(() => {
+  if (!unionInfo.value?.groupList)
+    return { groupId: null, groupName: '禁用用户', members: [], memberCount: 0 }
+  const disabled = unionInfo.value.groupList.find(
+    (g: GroupInfo) => (g.groupId === null || g.groupId === undefined) && g.groupName === '禁用用户',
+  )
+  return disabled || { groupId: null, groupName: '禁用用户', members: [], memberCount: 0 }
+})
+
+// 禁用用户列表（从禁用用户组中获取）
+const disabledMembers = computed<GroupMember[]>(() => {
+  return disabledGroup.value.membersList || disabledGroup.value.members || []
 })
 
 // 处理普通小组操作
@@ -323,6 +389,30 @@ const handlePendingCommand = async (command: string, row: GroupMember) => {
   }
 }
 
+// 处理禁用用户操作（仅允许恢复权限，后续可扩展启用功能）
+const handleDisabledCommand = async (command: string, row: GroupMember) => {
+  const userId = row.openid
+
+  switch (command) {
+    case 'restoreUser':
+      try {
+        await ElMessageBox.confirm('确定恢复该用户权限吗？', '提示', { type: 'warning' })
+        await restoreUser({
+          openid: userId,
+          operatorOpenid: generateOperatorOpenid(),
+        })
+        ElMessage.success('已恢复用户权限')
+        // 重新加载数据
+        if (unionId) {
+          unionInfo.value = await fetchUnionInfo(unionId)
+        }
+      } catch {
+        // 错误信息已由request拦截器统一处理
+      }
+      break
+  }
+}
+
 // 表格行类名
 const tableRowClassName = ({ row }: { row: GroupMember }) => {
   return row.role === 2 ? 'leader-row' : ''
@@ -361,7 +451,8 @@ const confirmAddToGroup = async () => {
   padding: 20px;
 }
 .group-collapse,
-.pending-group {
+.pending-group,
+.disabled-group {
   margin-bottom: 20px;
 }
 

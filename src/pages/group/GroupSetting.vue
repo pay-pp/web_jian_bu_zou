@@ -21,7 +21,7 @@
         </el-form-item>
         <el-form-item label="工会公告">
           <el-input
-            v-model="editForm.gongGao"
+            v-model="editForm.notice"
             type="textarea"
             :rows="4"
             placeholder="请输入工会公告"
@@ -109,7 +109,7 @@ const editForm = ref({
   id: 0,
   unionCode: '',
   rewardAmount: 0,
-  gongGao: '',
+  notice: '',
 })
 
 // 新增小组表单
@@ -136,7 +136,7 @@ onMounted(async () => {
         id: unionInfo.value.id, // 加入id，但不对外展示
         unionCode: unionInfo.value.unionCode || '',
         rewardAmount: unionInfo.value.rewardAmount || 0,
-        gongGao: unionInfo.value.gongGao || '',
+        notice: unionInfo.value.notice || '',
       }
     }
   } catch (e) {
@@ -162,7 +162,7 @@ const submitUnionInfo = async () => {
         ...unionInfo.value,
         unionCode: editForm.value.unionCode,
         rewardAmount: editForm.value.rewardAmount,
-        gongGao: editForm.value.gongGao,
+        notice: editForm.value.notice,
       }
     }
   } catch {
